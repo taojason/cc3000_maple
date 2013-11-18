@@ -117,7 +117,7 @@
 #define GET_SCAN_RESULTS_FRAME_TIME_OFFSET				(10)
 #define GET_SCAN_RESULTS_SSID_MAC_LENGTH				(38)
 
-
+#define DEBUGPRINT_F                    if(SerialUSB.isConnected()) SerialUSB.println
 
 //*****************************************************************************
 //                  GLOBAL VARAIABLES
@@ -235,6 +235,7 @@ void hci_unsol_handle_patch_request(char *event_hdr)
 unsigned char *
 hci_event_handler(void *pRetParams, unsigned char *from, unsigned char *fromlen)
 {
+	DEBUGPRINT_F("			Get into hci_event_handler\n\r");
 	unsigned char *pucReceivedData, ucArgsize;
 	unsigned short usLength;
 	unsigned char *pucReceivedParams;
@@ -245,15 +246,17 @@ hci_event_handler(void *pRetParams, unsigned char *from, unsigned char *fromlen)
 
 	while (1)
 	{
+		DEBUGPRINT_F("			Calling cc3k_int_poll()\n\r");
 		cc3k_int_poll();
 
 		if (tSLInformation.usEventOrDataReceived != 0)
 		{
-
+			DEBUGPRINT_F("			Get into if statement when tSLInformation.usEventOrDataReceived != 0\n\r");
 			pucReceivedData = (tSLInformation.pucReceivedData);
-
+			DEBUGPRINT_F(*pucReceivedData);
 			if (*pucReceivedData == HCI_TYPE_EVNT)
 			{
+				DEBUGPRINT_F("	--------	finally getinto the HCI_TYPE_EVNT statement, can possibly get out");
 				// Event Received
 				STREAM_TO_UINT16((char *)pucReceivedData,
 								HCI_EVENT_OPCODE_OFFSET,
@@ -452,10 +455,12 @@ hci_event_handler(void *pRetParams, unsigned char *from, unsigned char *fromlen)
 			}
 			else
 			{
+				DEBUGPRINT_F("			Get into else statment after checking pucReceivedData\n\r");
 				pucReceivedParams = pucReceivedData;
 				STREAM_TO_UINT8((char *)pucReceivedData, HCI_PACKET_ARGSIZE_OFFSET, ucArgsize);
-
+				DEBUGPRINT_F("			Done calling STREAM_TO_UNIT8\n\r");
 				STREAM_TO_UINT16((char *)pucReceivedData, HCI_PACKET_LENGTH_OFFSET, usLength);
+				DEBUGPRINT_F("			Done calling STREAM_TO_UNIT16\n\r");
 
 				// Data received: note that the only case where from and from length
 				// are not null is in recv from, so fill the args accordingly
@@ -465,14 +470,26 @@ hci_event_handler(void *pRetParams, unsigned char *from, unsigned char *fromlen)
 					memcpy(from, (pucReceivedData + HCI_DATA_HEADER_SIZE + BSD_RECV_FROM_FROM_OFFSET) ,*fromlen);
 				}
 
+				DEBUGPRINT_F("	------			Are we gonna fail at the memory copy?\n\r");
+				// DEBUGPRINT_F("pRetParams");
+				// DEBUGPRINT_F(*pRetParams);
+				DEBUGPRINT_F("pucReceivedParams");
+				DEBUGPRINT_F(*pucReceivedParams);
+				DEBUGPRINT_F("HCI_DATA_HEADER_SIZE");
+				DEBUGPRINT_F(HCI_DATA_HEADER_SIZE);
+				DEBUGPRINT_F("ucArgsize");
+				DEBUGPRINT_F(ucArgsize);
+				DEBUGPRINT_F("usLength");
+				DEBUGPRINT_F(usLength);
 				memcpy(pRetParams, pucReceivedParams + HCI_DATA_HEADER_SIZE + ucArgsize,
 							 usLength - ucArgsize);
-
+				DEBUGPRINT_F("			Done calling memcpy\n\r");
 				tSLInformation.usRxDataPending = 0;
 			}
 
 			tSLInformation.usEventOrDataReceived = 0;
 
+			DEBUGPRINT_F("			Calling SpiResumeSpi()\n\r");
 			SpiResumeSpi();
 
 			// Since we are going to TX - we need to handle this event after the
@@ -483,10 +500,13 @@ hci_event_handler(void *pRetParams, unsigned char *from, unsigned char *fromlen)
 				hci_unsol_handle_patch_request((char *)pucReceivedData);
 			}
 
+			DEBUGPRINT_F(" ------		will we return NULL?");
 			if ((tSLInformation.usRxEventOpcode == 0) && (tSLInformation.usRxDataPending == 0))
 			{
+				DEBUGPRINT_F("			about to return NULL!\n\r");
 				return NULL;
 			}
+			DEBUGPRINT_F(" ------		we didn't =( we are stuck in the while loop!");
 		}
 	}
 
@@ -833,6 +853,7 @@ SimpleLinkWaitEvent(unsigned short usOpcode, void *pRetParams)
 	// In the blocking implementation the control to caller will be returned only
 	// after the end of current transaction
 	tSLInformation.usRxEventOpcode = usOpcode;
+	DEBUGPRINT_F(" 			Entering hci_event_handler\n\r");
 	hci_event_handler(pRetParams, 0, 0);
 }
 

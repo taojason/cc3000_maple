@@ -69,6 +69,9 @@ extern uint8_t g_csPin, g_irqPin, g_vbatPin;
 
 #define DEBUGPRINT_F                    if(SerialUSB.isConnected()) SerialUSB.println
 
+// SPI instance for Maple
+HardwareSPI spi(1);
+
 // CC3000 chip select + SPI config
 #define CC3000_ASSERT_CS { digitalWrite(g_csPin, LOW); }
 // CC3000 chip deselect + SPI restore
@@ -91,9 +94,6 @@ typedef struct
 } tSpiInformation;
 
 tSpiInformation sSpiInformation;
-
-// SPI instance for Maple
-HardwareSPI spi(1);
 
 /* Static buffer for 5 bytes of SPI HEADER */
 unsigned char tSpiReadHeader[] = {READ, 0, 0, 0, 0};
@@ -189,19 +189,16 @@ int init_spi(void)
   DEBUGPRINT_F("\tJASON CHECK0\n\r");
   /* Set POWER_EN pin to output and disable the CC3000 by default */
   pinMode(g_vbatPin, OUTPUT);
-  digitalWrite(g_vbatPin, 0);
+  digitalWrite(g_vbatPin, LOW);
   delay(500);
   DEBUGPRINT_F("\tJASON CHECK1\n\r");
   /* Set CS pin to output (don't de-assert yet) */
   pinMode(g_csPin, OUTPUT);
-  delay(500);
   DEBUGPRINT_F("\tJASON CHECK2\n\r");
   /* Set interrupt/gpio pin to input */
   pinMode(g_irqPin, INPUT);
-  delay(500);
   DEBUGPRINT_F("\tJASON CHECK3\n\r");
   digitalWrite(g_irqPin, HIGH); // w/weak pullup
-  delay(500);
   DEBUGPRINT_F("\tJASON CHECK4\n\r");
   // Initialise SPI (Mode 1)
   spi.begin(SPI_9MHZ, MSBFIRST, SPI_MODE_1);

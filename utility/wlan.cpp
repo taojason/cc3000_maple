@@ -100,7 +100,7 @@ unsigned char profileArray[SMART_CONFIG_PROFILE_SIZE];
 #define WLAN_SMART_CONFIG_START_PARAMS_LEN		(4)
 
 
-
+#define DEBUGPRINT_F                    if(SerialUSB.isConnected()) SerialUSB.println
 
 //*****************************************************************************
 //
@@ -128,11 +128,15 @@ static void SimpleLink_Init_Start(unsigned short usPatchesAvailableAtHost)
 	if (usPatchesAvailableAtHost > 2)
 	  usPatchesAvailableAtHost = 2;
 
+	DEBUGPRINT_F("  --------        Calling UNIT8_TO_STREAM in SimpleLink_Init_Start\n\r");
 	UINT8_TO_STREAM(args, usPatchesAvailableAtHost);
 
+	DEBUGPRINT_F("  --------		IRQ Line asserted - send HCI_CMND_SIMPLE_LINK_START to CC3000\n\r");
 	// IRQ Line asserted - send HCI_CMND_SIMPLE_LINK_START to CC3000
 	hci_command_send(HCI_CMND_SIMPLE_LINK_START, ptr, WLAN_SL_INIT_START_PARAMS_LEN);
+	DEBUGPRINT_F("  --------		Waiting for SimpleLink Event\n\r");
 	SimpleLinkWaitEvent(HCI_CMND_SIMPLE_LINK_START, 0);
+	DEBUGPRINT_F("  --------		Done waiting for SimpleLink Event\n\r");
 }
 
 
@@ -263,7 +267,7 @@ void SpiReceiveHandler(void *pvBuffer)
 void
 wlan_start(unsigned short usPatchesAvailableAtHost)
 {
-
+	DEBUGPRINT_F("    START WLAN\n\r");
 	unsigned long ulSpiIRQState;
 
 	tSLInformation.NumberOfSentPackets = 0;
@@ -277,20 +281,26 @@ wlan_start(unsigned short usPatchesAvailableAtHost)
 	tSLInformation.usEventOrDataReceived = 0;
 	tSLInformation.pucReceivedData = 0;
 
+	DEBUGPRINT_F("    Allocating memory for RX/TX transactions WLAN\n\r");
 	// Allocate the memory for the RX/TX data transactions
 	tSLInformation.pucTxCommandBuffer = (unsigned char *)wlan_tx_buffer;
 
 	// init spi
+	DEBUGPRINT_F("    Calling SpiOpen function\n\r");
 	SpiOpen(SpiReceiveHandler);
 
 	// Check the IRQ line
+	DEBUGPRINT_F("    Checking the IRQ line\n\r");
 	ulSpiIRQState = tSLInformation.ReadWlanInterruptPin();
 
 	// ASIC 1273 chip enable: toggle WLAN EN line
+	DEBUGPRINT_F("    Calling WriteWlanPin(WLAN_ENABLE) function\n\r");
 	tSLInformation.WriteWlanPin( WLAN_ENABLE );
 
+	DEBUGPRINT_F("    Waiting for IRQ respond\n\r");
 	if (ulSpiIRQState)
 	{
+		DEBUGPRINT_F("      ulSpiIRQState is HIGH\n\r");
 		// wait till the IRQ line goes low
 		while(tSLInformation.ReadWlanInterruptPin() != 0)
 		{
@@ -298,20 +308,20 @@ wlan_start(unsigned short usPatchesAvailableAtHost)
 	}
 	else
 	{
+		DEBUGPRINT_F("      ulSpiIRQState is LOW\n\r");
 		// wait till the IRQ line goes high and than low
 		while(tSLInformation.ReadWlanInterruptPin() == 0)
 		{
 		}
-
 		while(tSLInformation.ReadWlanInterruptPin() != 0)
 		{
 		}
 	}
-	//DEBUGPRINT_F("SimpleLink start\n\r");
+	DEBUGPRINT_F("         SimpleLink start\n\r");
 	SimpleLink_Init_Start(usPatchesAvailableAtHost);
 
 	// Read Buffer's size and finish
-	//DEBUGPRINT_F("Read buffer\n\r");
+	DEBUGPRINT_F("         Read buffer\n\r");
 	hci_command_send(HCI_CMND_READ_BUFFER_SIZE, tSLInformation.pucTxCommandBuffer, 0);
 	SimpleLinkWaitEvent(HCI_CMND_READ_BUFFER_SIZE, 0);
 }

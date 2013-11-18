@@ -159,7 +159,6 @@ Adafruit_CC3000::Adafruit_CC3000(uint8_t csPin, uint8_t irqPin, uint8_t vbatPin)
 /**************************************************************************/
 bool Adafruit_CC3000::begin(uint8_t patchReq)
 {
-  DEBUGPRINT_F("START EVERYTHING????\n\r");
   while(init_spi()!=ESUCCESS);
 
   // printf("check spi init done!\n\r");
